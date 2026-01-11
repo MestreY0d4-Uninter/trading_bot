@@ -1,0 +1,54 @@
+/* api/assets/custom.css
+   Minimalista - Alinhado ao CLAUDE.md
+   Complementa o tema Bootstrap SUPERHERO
+*/
+
+/* Cards com contraste sutil */
+.card {
+    background-color: rgba(32, 55, 76, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Cores de Trading - Classes específicas */
+.table td.pnl-positive {
+    color: #00ff9d;
+    text-shadow: 0 0 8px rgba(0, 255, 157, 0.2);
+}
+
+.table td.pnl-negative {
+    color: #ff445e;
+    text-shadow: 0 0 8px rgba(255, 68, 94, 0.2);
+}
+
+/* Fallback para Bootstrap classes existentes */
+.text-success {
+    color: #00ff9d !important;
+}
+
+.text-danger {
+    color: #ff445e !important;
+}
+
+/* Scrollbar moderna (Webkit) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #20374c;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4e5d6c;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #5a6c7d;
+}
+
+/* Suavização de fontes */
+* {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}

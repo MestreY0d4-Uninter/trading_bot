@@ -1,0 +1,172 @@
+mode: testnet
+trading_pairs:
+- BTCUSDT
+- ETHUSDT
+- BNBUSDT
+- ADAUSDT
+- DOTUSDT
+- SOLUSDT
+- XRPUSDT
+- AVAXUSDT
+- POLUSDT
+- LINKUSDT
+- ATOMUSDT
+- UNIUSDT
+- ALGOUSDT
+strategy:
+  rsi_oversold: 20
+  rsi_overbought: 80
+  bb_lower_threshold: 0.12
+  min_volume_ratio: 0.08
+  min_bb_width: 0.5
+  stop_loss_pct: 0.8
+  take_profit_pct: 2.0
+  min_entry_score: 25
+  min_profit_target: 0.008
+  cooldown_seconds: 90
+  # Issue #48: Global entry rate limiting (SPRINT 2 optimizations)
+  # Reduced from 30s to 10s for faster reaction to signals
+  min_global_entry_interval: 10
+  # Increased from 1/min to 3/min to reduce opportunity cost
+  max_entries_per_minute: 3
+risk:
+  position_size_pct: 6.0
+  max_positions: 8
+  daily_loss_limit_pct: 8.0
+  daily_target_pct: 8.0
+  stop_loss_pct: 0.8
+  take_profit_pct: 2.0
+  max_consecutive_losses: 3
+  max_spread_pct: 0.3
+  min_order_size: 10.0
+  trailing_trigger_multiplier: 1.008
+  trailing_stop_multiplier: 0.995
+  trailing_update_threshold: 1.005
+aggressive_mode:
+  enabled: false
+  score_reduction: 10
+  spread_multiplier: 1.3
+  position_multiplier: 1.1
+market_analysis:
+  update_interval: 300
+  trend_threshold: 0.003
+  strong_trend_threshold: 0.02
+  volatility_adjustment: true
+  volume_weight: 0.3
+data:
+  download_days: 7
+  candle_interval: 1m
+  cache_ttl: 60
+  # Timeouts otimizados para scalping de alta frequência
+  candles_timeout: 8
+  ticker_timeout: 3
+  orderbook_timeout: 2
+  orderbook_timeout_sequence: [2, 3, 5]
+  ticker_24hr_timeout: 5
+  all_tickers_timeout: 10
+  api_timeout: 5
+cache:
+  default_ttl: 120
+  ticker_ttl: 5
+  candles_ttl: 30
+  orderbook_ttl: 3
+trading:
+  check_interval: 10
+  analysis_timeframe: "5m"
+  max_slippage: 0.003
+  emergency_close_on_shutdown: true
+  scalping_mode: true
+  quick_entry_threshold: 0.3
+bot:
+  name: TradingBot V2
+  version: 2.0.0
+  check_interval: 30
+binance:
+  testnet_api_key: FY9Ryorq6oyDmKkdiMY2t0boFVkvAoOjMlOhb6hTARSinvHQxEj3UXPWEiUzONmt
+  testnet_api_secret: cHDDqsEpYaIwnf85RoH1Y0z7AaE1Do1W3j9OIXdqoHXEfQeRlBUk0fdVRvIThjEE
+  real_api_key: ${BINANCE_API_KEY:-YOUR_API_KEY}
+  real_api_secret: ${BINANCE_API_SECRET:-YOUR_API_SECRET}
+  testnet_url: https://testnet.binance.vision
+  real_url: https://api.binance.com
+database:
+  path: data/trading_bot.db
+  backup_interval: 24
+  max_backups: 7
+oco_settings:
+  enabled: true  # Using new OCO API format (aboveType/belowType)
+  price_precision: 2
+  quantity_precision: 4
+  slippage_tolerance: 0.002
+  stop_limit_offset: 0.1
+sanity_checks:
+  max_spread_allowed: 0.3
+  min_balance_required: 25
+  max_single_loss: 18
+  max_single_loss_pct: 8.0
+  require_confirmations: false
+  min_volume_usd: 5000
+  max_slippage_pct: 1.5
+websocket:
+  enabled: true
+  max_reconnect_attempts: 5
+  initial_backoff: 1
+  max_backoff: 300
+  backoff_multiplier: 2
+  ping_interval_testnet: 20
+  ping_timeout_testnet: 60
+  ping_interval_mainnet: 180
+  ping_timeout_mainnet: 600
+  message_queue_size: 5000
+  max_lag_warning_ms: 500
+  preventive_reconnect_hours: 23
+  throttle_interval_seconds: 5
+data_sources:
+  market_data_source: websocket
+  fallback_enabled: true
+system:
+  timezone: America/Sao_Paulo
+  update_check: true
+  debug_mode: false
+emergency_conditions:
+  close_on_daily_drawdown: 15.0
+  close_on_consecutive_losses: 4
+  close_on_system_error: true
+shutdown_safety:
+  maintain_stops_active: true
+  maintain_takes_active: true
+  alert_major_moves: 5.0
+  position_timeout_hours: 48
+monitoring:
+  save_performance_metrics: true
+  metrics_interval: 30
+  save_market_data: true
+  daily_metrics_hour: 0
+  position_tracking:
+    enabled: true
+    alert_thresholds:
+      yellow: 12
+      orange: 24
+      red: 48
+  temporal_metrics:
+    track_duration: true
+    avg_duration_target: 8
+    max_comfort_hours: 36
+    log_duration_stats: true
+  intelligent_monitoring:
+    daily_pair_limit: 3
+    max_simultaneous_losses: 3
+    performance_review_days: 7
+correlation_management:
+  enabled: true
+  max_btc_pairs: 2
+  max_eth_ecosystem: 2
+  max_defi_pairs: 2
+  correlation_threshold: 0.7
+  ecosystem_pairs:
+    btc_related: [BTCUSDT]
+    eth_ecosystem: [ETHUSDT, MATICUSDT, LINKUSDT]
+    defi_pairs: [UNIUSDT, LINKUSDT, ALGOUSDT]
+advanced_filters:
+  min_volume_spike: 0.01  # Testnet-optimized: Ultra-low liquidity (was 0.8 prod, 0.15 initial)
+  momentum_filter: false
+  volatility_threshold: 0.005
