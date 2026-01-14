@@ -1,49 +1,17 @@
-import asyncio
-import hashlib
-from collections import OrderedDict
 from decimal import Decimal
-from typing import Any
 
 import pandas as pd
 
 from shared.observability.flow_tracker import track_component
-from shared.observability.logger import debug, error, production
+from shared.observability.logger import error, production
 from utils.decimal_math import to_decimal
 
 
 class TrendIndicators:
-    def __init__(self, cache_size: int = 100) -> None:
-        self.cache: OrderedDict[str, Any] = OrderedDict()
-        self.cache_size = cache_size
-        self.cache_hits = 0
-        self.cache_misses = 0
-        self._cache_lock = asyncio.Lock()
-
+    def __init__(self) -> None:
         self.default_params = {"ema_short": 9, "ema_long": 21, "ema_trend": 50}
 
-        production("TrendIndicators inicializado", cache_size=cache_size)
-
-    def _generate_cache_key(self, symbol: str, timeframe: str, params: dict) -> str:
-        key_parts = [symbol, timeframe, str(sorted(params.items()))]
-        key = "|".join(key_parts)
-        return hashlib.sha256(key.encode()).hexdigest()[:16]
-
-    async def _get_from_cache(self, cache_key: str) -> dict | None:
-        async with self._cache_lock:
-            if cache_key in self.cache:
-                self.cache.move_to_end(cache_key)
-                self.cache_hits += 1
-                return self.cache[cache_key]
-
-            self.cache_misses += 1
-            return None
-
-    async def _save_to_cache(self, cache_key: str, result: dict):
-        async with self._cache_lock:
-            if len(self.cache) >= self.cache_size:
-                self.cache.popitem(last=False)
-
-            self.cache[cache_key] = result
+        production("TrendIndicators inicializado")
 
     @track_component("indicators", slow_threshold=150)
     def calculate_trend_strength(self, candles: pd.DataFrame) -> tuple[str, Decimal]:
@@ -296,21 +264,3 @@ class TrendIndicators:
             "support_strength": 0,
             "resistance_strength": 0,
         }
-
-    def get_cache_stats(self) -> dict:
-        total_requests = self.cache_hits + self.cache_misses
-        hit_rate = (self.cache_hits / total_requests * 100) if total_requests > 0 else 0
-
-        return {
-            "cache_size": len(self.cache),
-            "cache_hits": self.cache_hits,
-            "cache_misses": self.cache_misses,
-            "hit_rate": hit_rate,
-            "total_requests": total_requests,
-        }
-
-    def clear_cache(self):
-        self.cache.clear()
-        self.cache_hits = 0
-        self.cache_misses = 0
-        debug("Cache de indicadores de tendência limpo")

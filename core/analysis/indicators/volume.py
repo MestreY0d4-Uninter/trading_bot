@@ -21,21 +21,21 @@ class VolumeIndicators:
 
             volume_ma_array = talib.SMA(volume_array, timeperiod=20)
             current_volume = to_decimal(float(volume_array[-1]))
-            avg_volume = (
-                to_decimal(float(volume_ma_array[-1]))
-                if not np.isnan(volume_ma_array[-1])
-                else current_volume
-            )
 
-            volume_ratio = (
-                (current_volume / avg_volume) if avg_volume > 0 else Decimal("1.0")
-            )
+            if volume_ma_array is not None and not np.isnan(volume_ma_array[-1]):
+                avg_volume = to_decimal(float(volume_ma_array[-1]))
+                volume_ratio = (
+                    (current_volume / avg_volume) if avg_volume > 0 else Decimal("1.0")
+                )
+            else:
+                avg_volume = None
+                volume_ratio = None
 
             obv_array = talib.OBV(close_array, volume_array)
             obv_value = (
                 to_decimal(float(obv_array[-1]))
-                if not np.isnan(obv_array[-1])
-                else Decimal("0.0")
+                if obv_array is not None and not np.isnan(obv_array[-1])
+                else None
             )
 
             return {
@@ -53,10 +53,10 @@ class VolumeIndicators:
         except Exception as e:
             error("Erro ao calcular indicadores de volume", error=str(e))
             return {
-                "volume_ratio": Decimal("1.0"),
+                "volume_ratio": None,
                 "volume_24h": Decimal("0"),
-                "obv": Decimal("0"),
-                "avg_volume": Decimal("0"),
+                "obv": None,
+                "avg_volume": None,
                 "current_volume": Decimal("0"),
             }
 
@@ -66,7 +66,7 @@ class VolumeIndicators:
             if "volume" not in candles or len(candles) < 20:
                 return {
                     "volume_trend": "NEUTRAL",
-                    "volume_ratio": Decimal("1.0"),
+                    "volume_ratio": None,
                     "volume_24h_usd": Decimal("0"),
                     "high_volume": False,
                 }
@@ -78,29 +78,33 @@ class VolumeIndicators:
             vol_ma_short = talib.SMA(volume_array, timeperiod=10)
             vol_ma_long = talib.SMA(volume_array, timeperiod=30)
 
-            current_vol_short = (
-                to_decimal(float(vol_ma_short[-1]))
-                if not np.isnan(vol_ma_short[-1])
-                else Decimal("0")
-            )
-            current_vol_long = (
-                to_decimal(float(vol_ma_long[-1]))
-                if not np.isnan(vol_ma_long[-1])
-                else Decimal("0")
-            )
+            if (
+                vol_ma_short is not None
+                and not np.isnan(vol_ma_short[-1])
+                and vol_ma_long is not None
+                and not np.isnan(vol_ma_long[-1])
+            ):
 
-            if current_vol_short > current_vol_long * Decimal("1.1"):
-                volume_trend = "INCREASING"
-            elif current_vol_short < current_vol_long * Decimal("0.9"):
-                volume_trend = "DECREASING"
+                current_vol_short = to_decimal(float(vol_ma_short[-1]))
+                current_vol_long = to_decimal(float(vol_ma_long[-1]))
+
+                if current_vol_short > current_vol_long * Decimal("1.1"):
+                    volume_trend = "INCREASING"
+                elif current_vol_short < current_vol_long * Decimal("0.9"):
+                    volume_trend = "DECREASING"
+                else:
+                    volume_trend = "NEUTRAL"
+
+                current_volume = to_decimal(float(volume.iloc[-1]))
+                avg_volume = (
+                    current_vol_long if current_vol_long > 0 else current_volume
+                )
+                volume_ratio = (
+                    (current_volume / avg_volume) if avg_volume > 0 else Decimal("1.0")
+                )
             else:
                 volume_trend = "NEUTRAL"
-
-            current_volume = to_decimal(float(volume.iloc[-1]))
-            avg_volume = current_vol_long if current_vol_long > 0 else current_volume
-            volume_ratio = (
-                (current_volume / avg_volume) if avg_volume > 0 else Decimal("1.0")
-            )
+                volume_ratio = None
 
             if len(candles) >= 288:
                 vol_24h = to_decimal(float(volume.tail(288).sum()))
@@ -111,7 +115,11 @@ class VolumeIndicators:
                 price_avg = to_decimal(float(close.mean()))
                 volume_24h_usd = vol_24h * price_avg
 
-            high_volume = volume_ratio > to_decimal(self.volume_threshold_multiplier)
+            high_volume = (
+                volume_ratio > to_decimal(self.volume_threshold_multiplier)
+                if volume_ratio is not None
+                else False
+            )
 
             return {
                 "volume_trend": volume_trend,
@@ -124,16 +132,20 @@ class VolumeIndicators:
             error("Erro ao calcular perfil de volume", error=str(e))
             return {
                 "volume_trend": "NEUTRAL",
-                "volume_ratio": Decimal("1.0"),
+                "volume_ratio": None,
                 "volume_24h_usd": Decimal("0"),
                 "high_volume": False,
             }
 
     @track_component("indicators", slow_threshold=100)
-    def calculate_vwap(self, candles: pd.DataFrame, period: int = 20) -> Decimal:
+    def calculate_vwap(self, candles: pd.DataFrame, period: int = 20) -> Decimal | None:
         try:
             if len(candles) < period:
-                return to_decimal(float(candles["close"].iloc[-1]))
+                return (
+                    to_decimal(float(candles["close"].iloc[-1]))
+                    if len(candles) > 0
+                    else None
+                )
 
             recent = candles.tail(period)
             typical_price = (recent["high"] + recent["low"] + recent["close"]) / 3
@@ -143,23 +155,19 @@ class VolumeIndicators:
                 vwap_value = (typical_price * volume).sum() / volume.sum()
                 return to_decimal(float(vwap_value))
 
-            return to_decimal(float(candles["close"].iloc[-1]))
+            return None
 
         except Exception as e:
             error("Erro ao calcular VWAP", error=str(e))
-            return (
-                to_decimal(float(candles["close"].iloc[-1]))
-                if len(candles) > 0
-                else Decimal("0")
-            )
+            return None
 
     @track_component("indicators", slow_threshold=50)
     def calculate_money_flow_index(
         self, candles: pd.DataFrame, period: int = 14
-    ) -> Decimal:
+    ) -> Decimal | None:
         try:
             if len(candles) < period + 1:
-                return Decimal("50.0")
+                return None
 
             high_array = candles["high"].to_numpy()
             low_array = candles["low"].to_numpy()
@@ -177,11 +185,11 @@ class VolumeIndicators:
             ):
                 return to_decimal(float(mfi_array[-1]))
 
-            return Decimal("50.0")
+            return None
 
         except Exception as e:
             error("Erro ao calcular MFI", error=str(e))
-            return Decimal("50.0")
+            return None
 
     @track_component("indicators", slow_threshold=200)
     def get_all_indicators(self, candles: pd.DataFrame) -> dict:

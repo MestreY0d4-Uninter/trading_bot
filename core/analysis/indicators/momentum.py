@@ -23,7 +23,9 @@ class MomentumIndicators:
         }
 
     @track_component("indicators", slow_threshold=50)
-    def calculate_rsi(self, close: pd.Series, period: int | None = None) -> Decimal:
+    def calculate_rsi(
+        self, close: pd.Series, period: int | None = None
+    ) -> Decimal | None:
         try:
             period = period or self.default_params["rsi_period"]
             close_array = close.to_numpy()
@@ -37,11 +39,11 @@ class MomentumIndicators:
             ):
                 return to_decimal(float(rsi_array[-1]))
 
-            return Decimal("50.0")
+            return None
 
         except Exception as e:
             error("Erro ao calcular RSI", error=str(e))
-            return Decimal("50.0")
+            return None
 
     @track_component("indicators", slow_threshold=100)
     def calculate_macd(
@@ -50,7 +52,7 @@ class MomentumIndicators:
         fast: int | None = None,
         slow: int | None = None,
         signal: int | None = None,
-    ) -> dict[str, Decimal]:
+    ) -> dict[str, Decimal | None]:
         try:
             fast = fast or self.default_params["macd_fast"]
             slow = slow or self.default_params["macd_slow"]
@@ -61,20 +63,16 @@ class MomentumIndicators:
                 close_array, fastperiod=fast, slowperiod=slow, signalperiod=signal
             )
 
-            macd_value = (
-                to_decimal(float(macd[-1]))
-                if not np.isnan(macd[-1])
-                else Decimal("0.0")
-            )
+            macd_value = to_decimal(float(macd[-1])) if not np.isnan(macd[-1]) else None
             signal_value = (
                 to_decimal(float(macd_signal[-1]))
                 if not np.isnan(macd_signal[-1])
-                else Decimal("0.0")
+                else None
             )
             hist_value = (
                 to_decimal(float(macd_hist[-1]))
                 if not np.isnan(macd_hist[-1])
-                else Decimal("0.0")
+                else None
             )
 
             return {
@@ -86,9 +84,9 @@ class MomentumIndicators:
         except Exception as e:
             error("Erro ao calcular MACD", error=str(e))
             return {
-                "macd": Decimal("0"),
-                "macd_signal": Decimal("0"),
-                "macd_histogram": Decimal("0"),
+                "macd": None,
+                "macd_signal": None,
+                "macd_histogram": None,
             }
 
     @track_component("indicators", slow_threshold=100)
@@ -100,7 +98,7 @@ class MomentumIndicators:
         k_period: int | None = None,
         d_period: int | None = None,
         smooth: int | None = None,
-    ) -> dict[str, Decimal]:
+    ) -> dict[str, Decimal | None]:
         try:
             k_period = k_period or self.default_params["stoch_k"]
             d_period = d_period or self.default_params["stoch_d"]
@@ -121,22 +119,14 @@ class MomentumIndicators:
                 slowd_matype=0,
             )
 
-            k_value = (
-                to_decimal(float(slowk[-1]))
-                if not np.isnan(slowk[-1])
-                else Decimal("50.0")
-            )
-            d_value = (
-                to_decimal(float(slowd[-1]))
-                if not np.isnan(slowd[-1])
-                else Decimal("50.0")
-            )
+            k_value = to_decimal(float(slowk[-1])) if not np.isnan(slowk[-1]) else None
+            d_value = to_decimal(float(slowd[-1])) if not np.isnan(slowd[-1]) else None
 
             return {"stoch_k": k_value, "stoch_d": d_value}
 
         except Exception as e:
             error("Erro ao calcular Stochastic", error=str(e))
-            return {"stoch_k": Decimal("50"), "stoch_d": Decimal("50")}
+            return {"stoch_k": None, "stoch_d": None}
 
     @track_component("indicators", slow_threshold=150)
     def calculate_adx(

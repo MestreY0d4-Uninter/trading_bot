@@ -30,39 +30,37 @@ class VolatilityIndicators:
             )
 
             current_price = to_decimal(float(close.iloc[-1]))
-            bb_upper = (
-                to_decimal(float(upper[-1]))
-                if not np.isnan(upper[-1])
-                else current_price * Decimal("1.02")
-            )
+            bb_upper = to_decimal(float(upper[-1])) if not np.isnan(upper[-1]) else None
             bb_middle = (
-                to_decimal(float(middle[-1]))
-                if not np.isnan(middle[-1])
-                else current_price
+                to_decimal(float(middle[-1])) if not np.isnan(middle[-1]) else None
             )
-            bb_lower = (
-                to_decimal(float(lower[-1]))
-                if not np.isnan(lower[-1])
-                else current_price * Decimal("0.98")
-            )
+            bb_lower = to_decimal(float(lower[-1])) if not np.isnan(lower[-1]) else None
 
-            bb_width = bb_upper - bb_lower
-            if bb_width > 0:
-                bb_position = (current_price - bb_lower) / bb_width
+            if bb_upper is not None and bb_lower is not None and bb_middle is not None:
+                bb_width = bb_upper - bb_lower
+                if bb_width > 0:
+                    bb_position = (current_price - bb_lower) / bb_width
+                else:
+                    bb_position = Decimal("0.5")
+
+                bb_width_pct = (
+                    (bb_width / bb_middle * Decimal("100"))
+                    if bb_middle > 0
+                    else Decimal("0")
+                )
             else:
-                bb_position = Decimal("0.5")
-
-            bb_width_pct = (
-                (bb_width / bb_middle * Decimal("100"))
-                if bb_middle > 0
-                else Decimal("0")
-            )
+                bb_position = None
+                bb_width_pct = None
 
             return {
                 "bb_upper": bb_upper,
                 "bb_middle": bb_middle,
                 "bb_lower": bb_lower,
-                "bb_position": max(Decimal("0"), min(Decimal("1"), bb_position)),
+                "bb_position": (
+                    max(Decimal("0"), min(Decimal("1"), bb_position))
+                    if bb_position is not None
+                    else None
+                ),
                 "bb_width": bb_width_pct,
                 "current_price": current_price,
             }
@@ -73,11 +71,11 @@ class VolatilityIndicators:
                 to_decimal(float(close.iloc[-1])) if len(close) > 0 else Decimal("0")
             )
             return {
-                "bb_upper": current * Decimal("1.02"),
-                "bb_middle": current,
-                "bb_lower": current * Decimal("0.98"),
-                "bb_position": Decimal("0.5"),
-                "bb_width": Decimal("0"),
+                "bb_upper": None,
+                "bb_middle": None,
+                "bb_lower": None,
+                "bb_position": None,
+                "bb_width": None,
                 "current_price": current,
             }
 
@@ -88,7 +86,7 @@ class VolatilityIndicators:
         low: pd.Series,
         close: pd.Series,
         period: int | None = None,
-    ) -> Decimal:
+    ) -> Decimal | None:
         try:
             period = period or self.default_params["atr_period"]
 
@@ -105,11 +103,11 @@ class VolatilityIndicators:
             ):
                 return to_decimal(float(atr_array[-1]))
 
-            return Decimal("0.0")
+            return None
 
         except Exception as e:
             error("Erro ao calcular ATR", error=str(e))
-            return Decimal("0.0")
+            return None
 
     @track_component("indicators", slow_threshold=100)
     def calculate_volatility_percent(
