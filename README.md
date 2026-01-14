@@ -2,10 +2,10 @@
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
 [![Binance](https://img.shields.io/badge/Exchange-Binance-yellow.svg)](https://binance.com)
-[![Architecture](https://img.shields.io/badge/Architecture-Modular_Monolith-purple.svg)]()
-[![Indicators](https://img.shields.io/badge/Indicators-TA--Lib_0.6.8-blue.svg)]()
-[![Code Quality](https://img.shields.io/badge/Complexity-A_(3.90)-brightgreen.svg)]()
-[![Linting](https://img.shields.io/badge/Ruff-Passed-success.svg)]()
+[![Architecture](https://img.shields.io/badge/Architecture-Modular_Monolith-purple.svg)
+[![Indicators](https://img.shields.io/badge/Indicators-TA--Lib_0.6.8-blue.svg)
+[![Code Quality](https://img.shields.io/badge/Complexity-A_(3.90)-brightgreen.svg)
+[![Linting](https://img.shields.io/badge/Ruff-Passed-success.svg)
 
 > **⚠️ DISCLAIMER:** This software is for educational purposes only. Cryptocurrency trading involves substantial risk of loss. Always test thoroughly in TESTNET before using real funds.
 
@@ -34,6 +34,16 @@ A high-frequency cryptocurrency scalping bot optimized for short-term trades wit
 - **Position Duration:** Target 8 hours, maximum 72 hours
 - **Risk Profile:** Aggressive momentum-based entries with strict risk controls
 - **Precision:** All financial calculations use Decimal with 28-digit precision
+
+## 🧠 Development Methodology (AI-Assisted)
+
+This project explores the potential of **Large Language Models (LLMs)** in modern software engineering. It was developed using an **AI-Assisted** methodology, where I acted as the Software Architect and Lead Reviewer, orchestration AI tools to accelerate development.
+
+**Key Learning Outcomes:**
+* Orchestrating complex architectures (Modular Monolith).
+* Implementing industry standards (Linting with Ruff, Type checking with Mypy).
+* Handling financial precision constraints (Decimal usage).
+* Managing containerized environments and dependencies.
 
 ## ✨ Features
 
