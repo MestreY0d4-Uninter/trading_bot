@@ -1,11 +1,75 @@
 from decimal import Decimal
 
 from shared.constants import AGGRESSIVE_MODE_MIN_SCORE, MIN_ENTRY_SCORE
-from shared.observability.logger import debug, error, production
+from shared.observability.logger import debug, error, production, warning
 from utils.decimal_math import to_decimal
 
 
 class ScoringSystem:
+    # RSI Weights
+    RSI_VERY_OVERSOLD_LIMIT = Decimal("30")
+    RSI_WEIGHT_VERY_OVERSOLD = Decimal("35")
+    RSI_WEIGHT_OVERSOLD_MAX = Decimal("25")
+    RSI_NEUTRAL_LOW_LIMIT = Decimal("45")
+    RSI_WEIGHT_NEUTRAL_LOW_MAX = Decimal("10")
+    RSI_NEUTRAL_HIGH_LIMIT = Decimal("55")
+    RSI_WEIGHT_NEUTRAL_HIGH = Decimal("5")
+    RSI_WEIGHT_OVERBOUGHT = Decimal("-10")
+
+    # Bollinger Bands Weights
+    BB_NEAR_BAND_THRESHOLD = Decimal("0.1")
+    BB_WEIGHT_BELOW_LOWER = Decimal("30")
+    BB_WEIGHT_NEAR_LOWER = Decimal("20")
+    BB_WEIGHT_ABOVE_UPPER = Decimal("-30")
+    BB_WEIGHT_NEAR_UPPER = Decimal("-20")
+
+    # Volume Weights
+    VOLUME_RATIO_HUGE = Decimal("2.0")
+    VOLUME_WEIGHT_HUGE = Decimal("15")
+    VOLUME_RATIO_HIGH = Decimal("1.0")
+    VOLUME_WEIGHT_HIGH = Decimal("8")
+    VOLUME_RATIO_NORMAL = Decimal("0.5")
+    VOLUME_WEIGHT_NORMAL = Decimal("5")
+    VOLUME_WEIGHT_LOW = Decimal("-3")
+
+    # Momentum Weights
+    MOMENTUM_STRONG_THRESHOLD = Decimal("0.005")
+    MOMENTUM_WEIGHT_STRONG = Decimal("8")
+    MOMENTUM_NORMAL_THRESHOLD = Decimal("0.002")
+    MOMENTUM_WEIGHT_NORMAL = Decimal("5")
+    MOMENTUM_WEIGHT_WEAK = Decimal("2")
+
+    # MACD Weights
+    MACD_STRONG_THRESHOLD = Decimal("0.01")
+    MACD_WEIGHT_STRONG = Decimal("8")
+    MACD_NORMAL_THRESHOLD = Decimal("0.001")
+    MACD_WEIGHT_NORMAL = Decimal("5")
+    MACD_WEIGHT_WEAK = Decimal("2")
+    MACD_NEGATIVE_THRESHOLD = Decimal("-0.001")
+    MACD_WEIGHT_NEGATIVE = Decimal("-5")
+
+    # Volatility Weights
+    VOLATILITY_LOW_LIMIT = Decimal("0.3")
+    VOLATILITY_PENALTY_LOW = Decimal("-10")
+    VOLATILITY_NORMAL_LIMIT = Decimal("2.0")
+    VOLATILITY_BONUS_NORMAL = Decimal("5")
+    VOLATILITY_HIGH_LIMIT = Decimal("15.0")
+    VOLATILITY_PENALTY_HIGH = Decimal("-5")
+    VOLATILITY_EXTREME_LIMIT = Decimal("30.0")
+    VOLATILITY_PENALTY_EXTREME = Decimal("-10")
+
+    # Spread Penalty
+    SPREAD_HIGH_THRESHOLD = Decimal("0.5")
+    SPREAD_NORMAL_THRESHOLD = Decimal("0.3")
+
+    # Trend Weights
+    TREND_WEIGHT_STRONG_UP = Decimal("15")
+    TREND_WEIGHT_UP = Decimal("10")
+    TREND_WEIGHT_SIDEWAYS = Decimal("-10")
+    TREND_WEIGHT_DOWN_AGGRESSIVE = Decimal("-5")
+    TREND_WEIGHT_DOWN = Decimal("-15")
+    TREND_WEIGHT_VOLATILE = Decimal("-5")
+
     def __init__(self, config: dict) -> None:
         self.config = config
         self.strategy_config = config.get("strategy", {})
@@ -33,85 +97,87 @@ class ScoringSystem:
     def _calculate_rsi_score(
         self, rsi: Decimal, oversold: Decimal, overbought: Decimal
     ) -> Decimal:
-        if rsi < 30:
-            return Decimal("35")
+        if rsi < self.RSI_VERY_OVERSOLD_LIMIT:
+            return self.RSI_WEIGHT_VERY_OVERSOLD
         elif rsi < oversold:
-            return min(Decimal("25"), (oversold - rsi) * Decimal("2"))
-        elif rsi < 45:
-            return min(Decimal("10"), (45 - rsi))
-        elif rsi < 55:
-            return Decimal("5")
+            return min(self.RSI_WEIGHT_OVERSOLD_MAX, (oversold - rsi) * Decimal("2"))
+        elif rsi < self.RSI_NEUTRAL_LOW_LIMIT:
+            return min(
+                self.RSI_WEIGHT_NEUTRAL_LOW_MAX, (self.RSI_NEUTRAL_LOW_LIMIT - rsi)
+            )
+        elif rsi < self.RSI_NEUTRAL_HIGH_LIMIT:
+            return self.RSI_WEIGHT_NEUTRAL_HIGH
         elif rsi < overbought:
             return Decimal("0")
         else:
-            return Decimal("-10")
+            return self.RSI_WEIGHT_OVERBOUGHT
 
     def _calculate_bb_score(
         self, price: Decimal, bb_lower: Decimal, bb_upper: Decimal, bb_width: Decimal
     ) -> Decimal:
         if price < bb_lower:
-            return Decimal("30")
-        elif bb_lower <= price < bb_lower + bb_width * Decimal("0.1"):
-            return Decimal("20")
+            return self.BB_WEIGHT_BELOW_LOWER
+        elif bb_lower <= price < bb_lower + bb_width * self.BB_NEAR_BAND_THRESHOLD:
+            return self.BB_WEIGHT_NEAR_LOWER
         elif price > bb_upper:
-            return Decimal("-30")
-        elif bb_upper - bb_width * Decimal("0.1") < price <= bb_upper:
-            return Decimal("-20")
+            return self.BB_WEIGHT_ABOVE_UPPER
+        elif bb_upper - bb_width * self.BB_NEAR_BAND_THRESHOLD < price <= bb_upper:
+            return self.BB_WEIGHT_NEAR_UPPER
         else:
             return Decimal("0")
 
     def _calculate_volume_score(
         self, volume_ratio: Decimal, min_ratio: Decimal
     ) -> Decimal:
-        if volume_ratio >= Decimal("2.0"):
-            return Decimal("15")
-        elif volume_ratio >= Decimal("1.0"):
-            return Decimal("8")
-        elif volume_ratio >= Decimal("0.5"):
-            return Decimal("5")
+        if volume_ratio >= self.VOLUME_RATIO_HUGE:
+            return self.VOLUME_WEIGHT_HUGE
+        elif volume_ratio >= self.VOLUME_RATIO_HIGH:
+            return self.VOLUME_WEIGHT_HIGH
+        elif volume_ratio >= self.VOLUME_RATIO_NORMAL:
+            return self.VOLUME_WEIGHT_NORMAL
         elif volume_ratio >= min_ratio:
             return Decimal("0")
         else:
-            return Decimal("-3")
+            return self.VOLUME_WEIGHT_LOW
 
     def _calculate_momentum_score(self, momentum: Decimal) -> Decimal:
-        if momentum > Decimal("0.005"):
-            return Decimal("8")
-        elif momentum > Decimal("0.002"):
-            return Decimal("5")
+        if momentum > self.MOMENTUM_STRONG_THRESHOLD:
+            return self.MOMENTUM_WEIGHT_STRONG
+        elif momentum > self.MOMENTUM_NORMAL_THRESHOLD:
+            return self.MOMENTUM_WEIGHT_NORMAL
         elif momentum > 0:
-            return Decimal("2")
+            return self.MOMENTUM_WEIGHT_WEAK
         else:
             return Decimal("0")
 
     def _calculate_macd_score(self, macd_histogram: Decimal) -> Decimal:
-        if macd_histogram > Decimal("0.01"):
-            return Decimal("8")
-        elif macd_histogram > Decimal("0.001"):
-            return Decimal("5")
+        if macd_histogram > self.MACD_STRONG_THRESHOLD:
+            return self.MACD_WEIGHT_STRONG
+        elif macd_histogram > self.MACD_NORMAL_THRESHOLD:
+            return self.MACD_WEIGHT_NORMAL
         elif macd_histogram > 0:
-            return Decimal("2")
-        elif macd_histogram > Decimal("-0.001"):
+            return self.MACD_WEIGHT_WEAK
+        elif macd_histogram > self.MACD_NEGATIVE_THRESHOLD:
             return Decimal("0")
         else:
-            return Decimal("-5")
+            return self.MACD_WEIGHT_NEGATIVE
 
     def _calculate_volatility_score(self, volatility: Decimal) -> Decimal:
-        if volatility < Decimal("0.3"):
-            return Decimal("-10")
-        elif volatility < Decimal("2.0"):
-            return Decimal("5")
-        elif volatility < Decimal("15.0"):
+        if volatility < self.VOLATILITY_LOW_LIMIT:
+            return self.VOLATILITY_PENALTY_LOW
+        elif volatility < self.VOLATILITY_NORMAL_LIMIT:
+            return self.VOLATILITY_BONUS_NORMAL
+        elif volatility < self.VOLATILITY_HIGH_LIMIT:
             return Decimal("0")
-        elif volatility < Decimal("30.0"):
-            return Decimal("-5")
+        elif volatility < self.VOLATILITY_EXTREME_LIMIT:
+            return self.VOLATILITY_PENALTY_HIGH
         else:
-            return Decimal("-10")
+            return self.VOLATILITY_PENALTY_EXTREME
 
     def _calculate_spread_penalty(self, spread_pct: Decimal) -> Decimal:
-        if spread_pct > Decimal("0.5"):
+        if spread_pct > self.SPREAD_HIGH_THRESHOLD:
             return min(Decimal("20"), spread_pct * Decimal("30"))
-        elif spread_pct > Decimal("0.3"):
+        elif spread_pct > self.SPREAD_NORMAL_THRESHOLD:
             return min(Decimal("10"), spread_pct * Decimal("20"))
         return Decimal("0")
 
@@ -119,15 +185,19 @@ class ScoringSystem:
         market_condition_upper = str(market_condition).upper()
 
         if "STRONG_UPTREND" in market_condition_upper:
-            return Decimal("15")
+            return self.TREND_WEIGHT_STRONG_UP
         elif "UPTREND" in market_condition_upper:
-            return Decimal("10")
+            return self.TREND_WEIGHT_UP
         elif "SIDEWAYS" in market_condition_upper:
-            return Decimal("-10")
+            return self.TREND_WEIGHT_SIDEWAYS
         elif "DOWNTREND" in market_condition_upper:
-            return Decimal("-5") if self.aggressive_mode else Decimal("-15")
+            return (
+                self.TREND_WEIGHT_DOWN_AGGRESSIVE
+                if self.aggressive_mode
+                else self.TREND_WEIGHT_DOWN
+            )
         elif "VOLATILE" in market_condition_upper:
-            return Decimal("-5")
+            return self.TREND_WEIGHT_VOLATILE
         else:
             return Decimal("0")
 
@@ -140,6 +210,15 @@ class ScoringSystem:
                 market_condition=market_condition,
                 spread_pct=spread_pct,
             )
+
+            # Verificação de indicadores críticos
+            critical_indicators = ["rsi", "bb_lower", "bb_upper", "volume_ratio"]
+            for ind in critical_indicators:
+                if indicators.get(ind) is None:
+                    warning(
+                        "Indicador crítico ausente. Signal invalidado.", indicator=ind
+                    )
+                    return Decimal("0"), {"error": f"Missing {ind}"}
 
             score = Decimal("0")
             components = {}
@@ -234,14 +313,6 @@ class ScoringSystem:
         except Exception as e:
             error("Erro ao calcular score", error=str(e))
             return Decimal("0"), {}
-
-    def calculate_entry_score(
-        self, indicators: dict, market_condition: str, spread_pct: Decimal
-    ) -> tuple[Decimal, dict]:
-        score, components = self.calculate_score(
-            indicators, market_condition, spread_pct
-        )
-        return score, components
 
     def validate_exit_conditions(
         self, position_data: dict, current_price: float

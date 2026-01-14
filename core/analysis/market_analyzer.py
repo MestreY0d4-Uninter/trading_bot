@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+import numpy as np
 import pandas as pd
 
 from shared.constants import (
@@ -323,25 +324,16 @@ class MarketAnalyzer:
             if len(series) < 2:
                 return Decimal("0.0")
 
-            x = range(len(series))
             y = series.values
+            x = np.arange(len(y))
 
-            n = len(x)
-            sum_x = sum(x)
-            sum_y = sum(y)
-            sum_xy = sum(xi * yi for xi, yi in zip(x, y, strict=True))
-            sum_x2 = sum(xi**2 for xi in x)
+            # Polyfit de grau 1 retorna [slope, intercept]
+            slope, _ = np.polyfit(x, y, 1)
 
-            denominator = n * sum_x2 - sum_x**2
-            if denominator == 0:
-                return Decimal("0.0")
-
-            slope = (n * sum_xy - sum_x * sum_y) / denominator
-
-            avg_price = sum_y / n
+            avg_price = np.mean(y)
             normalized_slope = slope / avg_price if avg_price > 0 else 0
 
-            return to_decimal(normalized_slope)
+            return to_decimal(float(normalized_slope))
 
         except Exception as e:
             error("Erro ao calcular slope", error=str(e))
