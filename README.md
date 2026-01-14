@@ -2,10 +2,10 @@
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
 [![Binance](https://img.shields.io/badge/Exchange-Binance-yellow.svg)](https://binance.com)
-[![Architecture](https://img.shields.io/badge/Architecture-Modular_Monolith-purple.svg)
-[![Indicators](https://img.shields.io/badge/Indicators-TA--Lib_0.6.8-blue.svg)
-[![Code Quality](https://img.shields.io/badge/Complexity-A_(3.90)-brightgreen.svg)
-[![Linting](https://img.shields.io/badge/Ruff-Passed-success.svg)
+![Architecture](https://img.shields.io/badge/Architecture-Modular_Monolith-purple.svg)
+![Indicators](https://img.shields.io/badge/Indicators-TA--Lib_0.6.8-blue.svg)
+![Code Quality](https://img.shields.io/badge/Complexity-A_(3.90)-brightgreen.svg)
+![Linting](https://img.shields.io/badge/Ruff-Passed-success.svg)
 
 > **⚠️ DISCLAIMER:** This software is for educational purposes only. Cryptocurrency trading involves substantial risk of loss. Always test thoroughly in TESTNET before using real funds.
 
