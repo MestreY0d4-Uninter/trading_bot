@@ -225,7 +225,7 @@ class SignalAnalyzer:
     def _calculate_entry_score(
         self, indicators: dict, market_condition: object, market_data: dict
     ) -> Decimal | None:
-        entry_score_result = self.scoring_system.calculate_entry_score(
+        entry_score_result = self.scoring_system.calculate_score(
             indicators,
             self._get_market_condition_value(market_condition),
             market_data.get("spread_pct", 0),
